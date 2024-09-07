@@ -19,3 +19,6 @@ Run the Game
 ```bash
 bin/main
 ```
+
+
+# ![snake Game](images/demo.png)
