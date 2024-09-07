@@ -2,6 +2,6 @@
 #include "game.hpp"
 
 int main() {
-  snake_game::Game game("Testing SFML");
+  snake_game::Game game("Snake Game");
   game.run();
 }

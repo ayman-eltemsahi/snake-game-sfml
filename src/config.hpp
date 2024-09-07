@@ -2,8 +2,8 @@
 
 namespace snake_game::config {
 
-const float window_width = 1000;
-const float window_height = 800;
+const float window_width = 800;
+const float window_height = 600;
 
 const float step_size = 20;
 
