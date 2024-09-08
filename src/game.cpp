@@ -50,7 +50,7 @@ bool collides(const Position &a, float a_size, const Position &b, float b_size) 
 }
 
 bool isOutOfBounds(int width, int height, const Position &pos, float size) {
-  return pos.x < 0 || pos.y < 0 || pos.x + size >= width || pos.y + size >= height;
+  return pos.x < 0 || pos.y < 0 || pos.x + size > width || pos.y + size > height;
 }
 
 Position snapPosition(const Position &pos) {
@@ -83,47 +83,9 @@ Game::Game(const std::string &title)
       m_frame(0),
       m_lastRenderTime(0),
       m_target(200.0, 200.0),
-      m_moving(false),
+      m_state(PLAYING),
       m_direction(RIGHT),
       m_lastStepTimer(Timer{}) {
-  setup();
-}
-
-void Game::run() {
-  while (m_window.isOpen()) {
-    m_frame++;
-    Timer timer;
-
-    sf::Event event;
-    sf::Keyboard::Key key = sf::Keyboard::Key::Unknown;
-    while (m_window.pollEvent(event)) {
-      if (event.type == sf::Event::KeyPressed) {
-        key = event.key.code;
-      } else if (event.type == sf::Event::Resized) {
-        randomizeTarget();
-      }
-    }
-
-    m_window.clear(sf::Color::Black);
-
-    const auto step_time = cfg::snake_step_time - cfg::snake_step_time * m_snakeBody.size() * 0.02;
-
-    if (m_moving && m_lastStepTimer.elapsed_millis() > step_time) {
-      handleKeyPress(event.key.code);
-      moveSnake();
-      m_lastStepTimer.reset();
-    }
-
-    drawGrass();
-    drawSnake();
-    drawTarget();
-
-    drawFrameTime(timer);
-    m_window.display();
-  }
-}
-
-void Game::setup() {
   srand(time(0));
   if (!m_font.loadFromFile("../fonts/OpenSans.ttf")) {
     LOG("Error loading font");
@@ -146,13 +108,62 @@ void Game::setup() {
     m_snakeBody.push_back(Position(100.0 - i * cfg::step_size, 100.0));
   }
   randomizeTarget();
-  m_moving = true;
+}
+
+void Game::run() {
+  while (m_window.isOpen()) {
+    m_frame++;
+    Timer timer;
+
+    sf::Event event;
+    sf::Keyboard::Key key = sf::Keyboard::Key::Unknown;
+    while (m_window.pollEvent(event)) {
+      if (event.type == sf::Event::KeyPressed) {
+        key = event.key.code;
+      } else if (event.type == sf::Event::Resized) {
+        randomizeTarget();
+      }
+    }
+
+    m_window.clear(sf::Color::Black);
+
+    switch (m_state) {
+      case PLAYING: {
+        const auto step_time =
+            cfg::snake_step_time - cfg::snake_step_time * m_snakeBody.size() * 0.02;
+
+        if (m_lastStepTimer.elapsed_millis() > step_time) {
+          handleKeyPress(event.key.code);
+          moveSnake();
+          m_lastStepTimer.reset();
+        }
+        drawGrass();
+        drawSnake();
+        drawTarget();
+
+        break;
+      }
+
+      case LOSE: {
+        drawGrass();
+        drawSnake();
+        drawYouLost();
+        break;
+      }
+
+      default:
+        break;
+    }
+
+    drawFrameTime(timer);
+    m_window.display();
+  }
 }
 
 void Game::handleKeyPress(sf::Keyboard::Key key) { m_direction = getDirection(key, m_direction); }
 
 void Game::moveSnake() {
-  if (!m_moving) {
+  if (m_state != PLAYING) {
     return;
   }
 
@@ -165,15 +176,14 @@ void Game::moveSnake() {
   for (const auto &bodyPart : m_snakeBody) {
     if (collides(bodyPart, cfg::step_size, newHead, cfg::step_size)) {
       m_snakeBody.push_front(newHead);
-      end(LOSE);
+      changeState(LOSE);
       return;
     }
   }
 
   const auto sz = m_window.getSize();
   if (isOutOfBounds(sz.x, sz.y, newHead, cfg::step_size)) {
-    m_snakeBody.push_front(newHead);
-    end(LOSE);
+    changeState(LOSE);
     return;
   }
 
@@ -198,13 +208,9 @@ void Game::randomizeTarget() {
   m_target = snapPosition(m_target);
 }
 
-void Game::end(GameState state) {
-  m_moving = false;
-  if (state == WIN) {
-    LOG("You win!");
-  } else {
-    LOG("You lose!");
-  }
+void Game::changeState(GameState state) {
+  m_state = state;
+  LOG2("Game state changed to: ", state);
 }
 
 sf::IntRect getSnakeSpritePart(const sprite_map &map, Direction dir) {
@@ -274,13 +280,24 @@ void Game::drawGrass() {
 }
 
 void Game::drawFrameTime(const Timer &timer) {
-  if (m_frame % 400 == 0) {
+  if (!config::showDebugInfo) {
+    return;
+  }
+
+  if (m_frame % 20 == 0) {
     m_lastRenderTime = timer.elapsed_micros();
   }
 
   const auto value = "frame time:  " + std::to_string(int(m_lastRenderTime)) + " micros";
-  const auto pos = sf::Vector2f(10.0, m_window.getSize().y - 30.0);
-  m_window.text(m_font, value, pos, 20, sf::Color::White);
+  const auto fontSize = m_window.getSize().x / 40;
+  const auto pos = sf::Vector2f(10.0, m_window.getSize().y - fontSize - 10);
+  m_window.text(m_font, value, pos, fontSize, sf::Color::White);
+}
+
+void Game::drawYouLost() {
+  const auto sz = m_window.getSize();
+  m_window.text(m_font, "You Lost", sf::Vector2f(sz.x * 0.41, sz.y * 0.45), sz.x / 20,
+                sf::Color::White);
 }
 
 }  // namespace snake_game

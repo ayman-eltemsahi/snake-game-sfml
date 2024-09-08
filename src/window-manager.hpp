@@ -9,7 +9,9 @@ class WindowManager {
  public:
   WindowManager(const std::string& title)
       : m_window(
-            sf::RenderWindow(sf::VideoMode(config::window_width, config::window_height), title)) {}
+            sf::RenderWindow(sf::VideoMode(config::window_width, config::window_height), title)) {
+    m_window.setFramerateLimit(120);
+  }
 
   void clear(const sf::Color& color) { m_window.clear(color); }
   bool isOpen() const { return m_window.isOpen(); }

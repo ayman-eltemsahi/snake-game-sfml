@@ -7,7 +7,7 @@
 namespace snake_game {
 
 enum Direction { UP, DOWN, LEFT, RIGHT };
-enum GameState { WIN, LOSE };
+enum GameState { PLAYING, WIN, LOSE };
 
 struct Position {
   Position(int x, int y) : x(x), y(y) {}
@@ -45,18 +45,19 @@ class Game {
   void run();
 
  private:
-  void drawFrameTime(const Timer &timer);
-  void drawGrass();
-  void drawSnake();
-  void setup();
   void handleKeyPress(sf::Keyboard::Key key);
   void moveSnake();
-  void drawTarget();
   void randomizeTarget();
-  void end(GameState state);
+  void changeState(GameState state);
+
+  void drawSnake();
+  void drawGrass();
+  void drawTarget();
+  void drawYouLost();
+  void drawFrameTime(const Timer &timer);
 
  private:
-  bool m_moving;
+  GameState m_state;
   Direction m_direction;
   Position m_target;
   std::deque<Position> m_snakeBody;

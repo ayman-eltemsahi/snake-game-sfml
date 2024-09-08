@@ -10,4 +10,7 @@ const float step_size = 20;
 const int snake_step_time = 200;
 const int snake_sprite_size = 16;
 
+
+const bool showDebugInfo = true;
+
 }  // namespace snake_game::config
